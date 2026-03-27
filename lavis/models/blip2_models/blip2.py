@@ -23,13 +23,16 @@ from lavis.models.base_model import BaseModel
 from lavis.models.blip2_models.Qformer import BertConfig, BertLMHeadModel
 from lavis.models.eva_vit import create_eva_vit_g
 from lavis.models.clip_vit import create_clip_vit_L
+from lavis.models.external_vit import create_siglip2, create_dinov3, create_radio
 from transformers import BertTokenizer
 
 
 class Blip2Base(BaseModel):
+    BERT_MODEL_PATH = "/root/paddlejob/workspace/env_run/penghaotian/models/google-bert/bert-base-uncased"
+
     @classmethod
     def init_tokenizer(cls, truncation_side="right"):
-        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", truncation_side=truncation_side)
+        tokenizer = BertTokenizer.from_pretrained(cls.BERT_MODEL_PATH, truncation_side=truncation_side)
         tokenizer.add_special_tokens({"bos_token": "[DEC]"})
         return tokenizer
 
@@ -45,15 +48,20 @@ class Blip2Base(BaseModel):
 
     @classmethod
     def init_Qformer(cls, num_query_token, vision_width, cross_attention_freq=2):
-        encoder_config = BertConfig.from_pretrained("bert-base-uncased")
+        encoder_config = BertConfig.from_pretrained(cls.BERT_MODEL_PATH)
         encoder_config.encoder_width = vision_width
         # insert cross-attention layer every other block
         encoder_config.add_cross_attention = True
         encoder_config.cross_attention_freq = cross_attention_freq
         encoder_config.query_length = num_query_token
         Qformer = BertLMHeadModel.from_pretrained(
-            "bert-base-uncased", config=encoder_config
+            cls.BERT_MODEL_PATH, config=encoder_config
         )
+        # transformers >= 4.3x breaks the tied-weight binding in BertLMPredictionHead:
+        # decoder.bias ends up as a meta tensor. Re-tie it to the real bias parameter.
+        pred = Qformer.cls.predictions
+        if pred.decoder.bias.is_meta:
+            pred.decoder.bias = pred.bias
         query_tokens = nn.Parameter(
             torch.zeros(1, num_query_token, encoder_config.hidden_size)
         )
@@ -63,21 +71,22 @@ class Blip2Base(BaseModel):
     def init_vision_encoder(
         self, model_name, img_size, drop_path_rate, use_grad_checkpoint, precision
     ):
-        assert model_name in [
-            "eva_clip_g",
-            "eva2_clip_L",
-            "clip_L",
-        ], "vit model must be eva_clip_g, eva2_clip_L or clip_L"
+        supported = ["eva_clip_g", "eva2_clip_L", "clip_L", "siglip2", "dinov3", "radio_so400m"]
+        assert model_name in supported, f"vit model must be one of {supported}"
+
         if model_name == "eva_clip_g":
             visual_encoder = create_eva_vit_g(
                 img_size, drop_path_rate, use_grad_checkpoint, precision
             )
-#         elif model_name == "eva2_clip_L":
-#             visual_encoder = create_eva2_vit_L(
-#                 img_size, drop_path_rate, use_grad_checkpoint, precision
-#             )
         elif model_name == "clip_L":
             visual_encoder = create_clip_vit_L(img_size, use_grad_checkpoint, precision)
+        elif model_name == "siglip2":
+            visual_encoder = create_siglip2(precision)
+        elif model_name == "dinov3":
+            visual_encoder = create_dinov3(precision)
+        elif model_name == "radio_so400m":
+            visual_encoder = create_radio(precision)
+
         ln_vision = LayerNorm(visual_encoder.num_features)
         self.vit_name = model_name
         return visual_encoder, ln_vision

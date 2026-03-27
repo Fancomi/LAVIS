@@ -99,14 +99,22 @@ from lavis.datasets.builders.audio_caption_builder import (
     WavCapsCapBuilder
 )
 
-from lavis.datasets.builders.object3d_caption_builder import (
-    ObjaverseCaptionInstructBuilder,
-    ShapenetCaptionInstructBuilder,
-    ObjaverseCaptionBuilder,
-    ShapenetCaptionBuilder
-)
-from lavis.datasets.builders.object3d_qa_builder import ObjaverseQABuilder
-from lavis.datasets.builders.object3d_classification_builder import ModelNetClassificationBuilder
+try:
+    from lavis.datasets.builders.object3d_caption_builder import (
+        ObjaverseCaptionInstructBuilder,
+        ShapenetCaptionInstructBuilder,
+        ObjaverseCaptionBuilder,
+        ShapenetCaptionBuilder
+    )
+    from lavis.datasets.builders.object3d_qa_builder import ObjaverseQABuilder
+    from lavis.datasets.builders.object3d_classification_builder import ModelNetClassificationBuilder
+except ModuleNotFoundError:
+    ObjaverseCaptionInstructBuilder = None
+    ShapenetCaptionInstructBuilder = None
+    ObjaverseCaptionBuilder = None
+    ShapenetCaptionBuilder = None
+    ObjaverseQABuilder = None
+    ModelNetClassificationBuilder = None
 
 from lavis.datasets.builders.audio_qa_builder import AudioCapsQABuilder, ClothoQABuilder
 

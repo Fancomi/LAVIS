@@ -27,7 +27,10 @@ from lavis.processors.gpt_processors import (
 )
 from lavis.processors.clip_processors import ClipImageTrainProcessor
 from lavis.processors.audio_processors import BeatsAudioProcessor
-from lavis.processors.ulip_processors import ULIPPCProcessor
+try:
+    from lavis.processors.ulip_processors import ULIPPCProcessor
+except ModuleNotFoundError:
+    ULIPPCProcessor = None
 from lavis.processors.instruction_text_processors import BlipInstructionProcessor
 
 from lavis.common.registry import registry

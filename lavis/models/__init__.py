@@ -12,45 +12,49 @@ from lavis.common.registry import registry
 
 from lavis.models.base_model import BaseModel
 
-from lavis.models.albef_models.albef_classification import AlbefClassification
-from lavis.models.albef_models.albef_feature_extractor import AlbefFeatureExtractor
-from lavis.models.albef_models.albef_nlvr import AlbefNLVR
-from lavis.models.albef_models.albef_pretrain import AlbefPretrain
-from lavis.models.albef_models.albef_retrieval import AlbefRetrieval
-from lavis.models.albef_models.albef_vqa import AlbefVQA
-from lavis.models.alpro_models.alpro_qa import AlproQA
-from lavis.models.alpro_models.alpro_retrieval import AlproRetrieval
-
-from lavis.models.blip_models.blip import BlipBase
-from lavis.models.blip_models.blip_caption import BlipCaption
-from lavis.models.blip_models.blip_classification import BlipClassification
-from lavis.models.blip_models.blip_feature_extractor import BlipFeatureExtractor
-from lavis.models.blip_models.blip_image_text_matching import BlipITM
-from lavis.models.blip_models.blip_nlvr import BlipNLVR
-from lavis.models.blip_models.blip_pretrain import BlipPretrain
-from lavis.models.blip_models.blip_retrieval import BlipRetrieval
-from lavis.models.blip_models.blip_vqa import BlipVQA
-
+# ── BLIP2 core (required) ────────────────────────────────────
 from lavis.models.blip2_models.blip2 import Blip2Base
 from lavis.models.blip2_models.blip2_opt import Blip2OPT
 from lavis.models.blip2_models.blip2_t5 import Blip2T5
 from lavis.models.blip2_models.blip2_qformer import Blip2Qformer
 from lavis.models.blip2_models.blip2_image_text_matching import Blip2ITM
 
-from lavis.models.blip2_models.blip2_t5_instruct import Blip2T5Instruct
-from lavis.models.blip2_models.blip2_vicuna_instruct import Blip2VicunaInstruct
-from lavis.models.blip2_models.blip2_vicuna_xinstruct import Blip2VicunaXInstruct
+# ── Optional models (graceful degradation on missing deps) ───
+def _try_import(import_fn, name):
+    try:
+        return import_fn()
+    except (ImportError, ModuleNotFoundError) as e:
+        logging.getLogger(__name__).debug(f"Optional model {name} not loaded: {e}")
+        return None
 
-from lavis.models.blip_diffusion_models.blip_diffusion import BlipDiffusion
-
-from lavis.models.pnp_vqa_models.pnp_vqa import PNPVQA
-from lavis.models.pnp_vqa_models.pnp_unifiedqav2_fid import PNPUnifiedQAv2FiD
-from lavis.models.img2prompt_models.img2prompt_vqa import Img2PromptVQA
-from lavis.models.med import XBertLMHeadDecoder
-from lavis.models.vit import VisionTransformerEncoder
-from lavis.models.clip_models.model import CLIP
-
-from lavis.models.gpt_models.gpt_dialogue import GPTDialogue
+AlbefClassification    = _try_import(lambda: __import__('lavis.models.albef_models.albef_classification',    fromlist=['AlbefClassification']).AlbefClassification,    'AlbefClassification')
+AlbefFeatureExtractor  = _try_import(lambda: __import__('lavis.models.albef_models.albef_feature_extractor',  fromlist=['AlbefFeatureExtractor']).AlbefFeatureExtractor,  'AlbefFeatureExtractor')
+AlbefNLVR              = _try_import(lambda: __import__('lavis.models.albef_models.albef_nlvr',              fromlist=['AlbefNLVR']).AlbefNLVR,                          'AlbefNLVR')
+AlbefPretrain          = _try_import(lambda: __import__('lavis.models.albef_models.albef_pretrain',          fromlist=['AlbefPretrain']).AlbefPretrain,                  'AlbefPretrain')
+AlbefRetrieval         = _try_import(lambda: __import__('lavis.models.albef_models.albef_retrieval',         fromlist=['AlbefRetrieval']).AlbefRetrieval,                'AlbefRetrieval')
+AlbefVQA               = _try_import(lambda: __import__('lavis.models.albef_models.albef_vqa',               fromlist=['AlbefVQA']).AlbefVQA,                            'AlbefVQA')
+AlproQA                = _try_import(lambda: __import__('lavis.models.alpro_models.alpro_qa',                fromlist=['AlproQA']).AlproQA,                              'AlproQA')
+AlproRetrieval         = _try_import(lambda: __import__('lavis.models.alpro_models.alpro_retrieval',         fromlist=['AlproRetrieval']).AlproRetrieval,                'AlproRetrieval')
+BlipBase               = _try_import(lambda: __import__('lavis.models.blip_models.blip',                     fromlist=['BlipBase']).BlipBase,                            'BlipBase')
+BlipCaption            = _try_import(lambda: __import__('lavis.models.blip_models.blip_caption',             fromlist=['BlipCaption']).BlipCaption,                      'BlipCaption')
+BlipClassification     = _try_import(lambda: __import__('lavis.models.blip_models.blip_classification',      fromlist=['BlipClassification']).BlipClassification,        'BlipClassification')
+BlipFeatureExtractor   = _try_import(lambda: __import__('lavis.models.blip_models.blip_feature_extractor',   fromlist=['BlipFeatureExtractor']).BlipFeatureExtractor,    'BlipFeatureExtractor')
+BlipITM                = _try_import(lambda: __import__('lavis.models.blip_models.blip_image_text_matching', fromlist=['BlipITM']).BlipITM,                              'BlipITM')
+BlipNLVR               = _try_import(lambda: __import__('lavis.models.blip_models.blip_nlvr',                fromlist=['BlipNLVR']).BlipNLVR,                            'BlipNLVR')
+BlipPretrain           = _try_import(lambda: __import__('lavis.models.blip_models.blip_pretrain',            fromlist=['BlipPretrain']).BlipPretrain,                    'BlipPretrain')
+BlipRetrieval          = _try_import(lambda: __import__('lavis.models.blip_models.blip_retrieval',           fromlist=['BlipRetrieval']).BlipRetrieval,                  'BlipRetrieval')
+BlipVQA                = _try_import(lambda: __import__('lavis.models.blip_models.blip_vqa',                 fromlist=['BlipVQA']).BlipVQA,                              'BlipVQA')
+Blip2T5Instruct        = _try_import(lambda: __import__('lavis.models.blip2_models.blip2_t5_instruct',       fromlist=['Blip2T5Instruct']).Blip2T5Instruct,              'Blip2T5Instruct')
+Blip2VicunaInstruct    = _try_import(lambda: __import__('lavis.models.blip2_models.blip2_vicuna_instruct',   fromlist=['Blip2VicunaInstruct']).Blip2VicunaInstruct,      'Blip2VicunaInstruct')
+Blip2VicunaXInstruct   = _try_import(lambda: __import__('lavis.models.blip2_models.blip2_vicuna_xinstruct',  fromlist=['Blip2VicunaXInstruct']).Blip2VicunaXInstruct,    'Blip2VicunaXInstruct')
+BlipDiffusion          = _try_import(lambda: __import__('lavis.models.blip_diffusion_models.blip_diffusion', fromlist=['BlipDiffusion']).BlipDiffusion,                  'BlipDiffusion')
+PNPVQA                 = _try_import(lambda: __import__('lavis.models.pnp_vqa_models.pnp_vqa',               fromlist=['PNPVQA']).PNPVQA,                                'PNPVQA')
+PNPUnifiedQAv2FiD      = _try_import(lambda: __import__('lavis.models.pnp_vqa_models.pnp_unifiedqav2_fid',   fromlist=['PNPUnifiedQAv2FiD']).PNPUnifiedQAv2FiD,          'PNPUnifiedQAv2FiD')
+Img2PromptVQA          = _try_import(lambda: __import__('lavis.models.img2prompt_models.img2prompt_vqa',     fromlist=['Img2PromptVQA']).Img2PromptVQA,                  'Img2PromptVQA')
+XBertLMHeadDecoder     = _try_import(lambda: __import__('lavis.models.med',                                  fromlist=['XBertLMHeadDecoder']).XBertLMHeadDecoder,        'XBertLMHeadDecoder')
+VisionTransformerEncoder = _try_import(lambda: __import__('lavis.models.vit',                                fromlist=['VisionTransformerEncoder']).VisionTransformerEncoder, 'VisionTransformerEncoder')
+CLIP                   = _try_import(lambda: __import__('lavis.models.clip_models.model',                    fromlist=['CLIP']).CLIP,                                    'CLIP')
+GPTDialogue            = _try_import(lambda: __import__('lavis.models.gpt_models.gpt_dialogue',              fromlist=['GPTDialogue']).GPTDialogue,                      'GPTDialogue')
 
 from lavis.processors.base_processor import BaseProcessor
 

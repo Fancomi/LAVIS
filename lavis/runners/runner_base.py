@@ -362,7 +362,7 @@ class RunnerBase:
 
     def train(self):
         start_time = time.time()
-        best_agg_metric = 0
+        best_agg_metric = -float("inf")
         best_epoch = 0
 
         self.log_config()

@@ -5,6 +5,7 @@
  For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
 """
 
+import json
 import logging
 import os
 
@@ -243,6 +244,21 @@ class BaseTask:
 
             metric_logger.update(**loss_dict)
             metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+
+            # per-step 写文件，用于后续画曲线
+            if is_main_process() and (i + 1) % log_freq == 0:
+                output_dir = registry.get_path("output_dir")
+                if output_dir:
+                    step_stats = {
+                        "epoch": epoch,
+                        "step": i + 1,
+                        "lr": optimizer.param_groups[0]["lr"],
+                        **{k: round(meter.global_avg, 6)
+                           for k, meter in metric_logger.meters.items()
+                           if k != "lr"},
+                    }
+                    with open(os.path.join(output_dir, "train_steps.jsonl"), "a") as f:
+                        f.write(json.dumps(step_stats) + "\n")
 
         # after train_epoch()
         # gather the stats from all processes

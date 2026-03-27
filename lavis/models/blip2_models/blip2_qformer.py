@@ -157,7 +157,10 @@ class Blip2Qformer(Blip2Base):
         )
 
         if "image_id" in samples.keys(): #coco retrieval finetuning
-            image_ids = samples["image_id"].view(-1,1)
+            image_ids = samples["image_id"]
+            if not isinstance(image_ids, torch.Tensor):
+                image_ids = torch.tensor([hash(str(i)) % (2**31) for i in image_ids], device=image.device)
+            image_ids = image_ids.view(-1,1)
             image_ids_all = concat_all_gather(image_ids)
             pos_idx = torch.eq(image_ids, image_ids_all.t()).float()       
             sim_targets = pos_idx / pos_idx.sum(1,keepdim=True)   
