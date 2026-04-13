@@ -22,7 +22,7 @@ datasets:
     build_info:
       annotations:
         train:
-          storage: coco/annotations/coco_karpathy_train_quick.json  # 1/10子集，56674条，原始顺序
+          storage: coco/annotations/coco_karpathy_train_2xquick.json  # 1/5子集，113348条，原始顺序
         val:
           storage: coco/annotations/coco_karpathy_val.json
         test:
@@ -38,11 +38,11 @@ run:
   warmup_lr: 1e-6
   weight_decay: 0.05
 
-  max_epoch: 2
+  max_epoch: 4
   batch_size_train: 64
   batch_size_eval: 64
   num_workers: 4
-  warmup_steps: 500
+  warmup_steps: 1000
   log_freq: 20          # 每20步写一次 train_steps.jsonl
 
   seed: 42

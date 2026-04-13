@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sequential quick run: siglip2 → dinov3 → origin(eva) → radio
+# Sequential smoke run: siglip2 → dinov3 → origin(eva) → radio
 # Each sub-script handles its own logging to logs/<name>.log
 set -e
 
@@ -8,11 +8,11 @@ cd "$LAVIS_DIR"
 
 LOG_DIR="$LAVIS_DIR/logs"
 mkdir -p "$LOG_DIR"
-MASTER_LOG="$LOG_DIR/run_all_quick.log"
+MASTER_LOG="$LOG_DIR/run_all_smoke.log"
 exec > >(tee -a "$MASTER_LOG") 2>&1
 
 echo "=========================================="
-echo " ALL QUICK START  $(date)"
+echo " ALL SMOKE START  $(date)"
 echo "=========================================="
 
 run_one() {
@@ -24,12 +24,12 @@ run_one() {
     echo ">>> [$name] DONE   $(date)"
 }
 
-run_one "siglip2" "$LAVIS_DIR/run_blip2_siglip2_quick.sh"
-run_one "radio"   "$LAVIS_DIR/run_blip2_radio_quick.sh"
-run_one "dinov3"  "$LAVIS_DIR/run_blip2_dinov3_quick.sh"
-run_one "origin"  "$LAVIS_DIR/run_blip2_origin_quick.sh"
+run_one "siglip2" "$LAVIS_DIR/run_blip2_siglip2_smoke.sh"
+run_one "radio"   "$LAVIS_DIR/run_blip2_radio_smoke.sh"
+run_one "dinov3"  "$LAVIS_DIR/run_blip2_dinov3_smoke.sh"
+run_one "origin"  "$LAVIS_DIR/run_blip2_origin_smoke.sh"
 
 echo ""
 echo "=========================================="
-echo " ALL QUICK DONE   $(date)"
+echo " ALL SMOKE DONE   $(date)"
 echo "=========================================="

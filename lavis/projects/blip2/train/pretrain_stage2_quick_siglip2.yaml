@@ -20,9 +20,13 @@ datasets:
       train:
         name: "blip2_image_train"
         image_size: 384
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
       eval:
         name: "blip_image_eval"
         image_size: 384
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
     text_processor:
       train:
         name: "blip_caption"
@@ -31,7 +35,7 @@ datasets:
     build_info:
       annotations:
         train:
-          storage: coco/annotations/coco_karpathy_train_quick.json
+          storage: coco/annotations/coco_karpathy_train_2xquick.json
         val:
           storage: coco/annotations/coco_karpathy_val.json
         test:
@@ -46,11 +50,11 @@ run:
   min_lr: 1e-5
   warmup_lr: 1e-6
   weight_decay: 0.05
-  max_epoch: 2
+  max_epoch: 4
   batch_size_train: 32
   batch_size_eval: 32
   num_workers: 4
-  warmup_steps: 500
+  warmup_steps: 1000
   log_freq: 20
   seed: 42
   output_dir: "output/BLIP2/Pretrain_stage2_quick_siglip2"

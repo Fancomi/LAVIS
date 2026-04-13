@@ -13,9 +13,13 @@ datasets:
       train:
         name: "blip2_image_train"
         image_size: 512
+        mean: [0.0, 0.0, 0.0]
+        std: [1.0, 1.0, 1.0]
       eval:
         name: "blip_image_eval"
         image_size: 512
+        mean: [0.0, 0.0, 0.0]
+        std: [1.0, 1.0, 1.0]
     text_processor:
       train:
         name: "blip_caption"

@@ -20,6 +20,8 @@ datasets:
       eval:
         name: "blip_image_eval"
         image_size: 224
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
     text_processor:
       eval:
         name: "blip_caption"

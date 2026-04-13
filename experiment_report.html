@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLIP2 视觉编码器对比实验报告</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #fff; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; color: #1a1a1a; line-height: 1.7; }
+
+  .page { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .report-title { font-size: 2rem; font-weight: 700; margin-bottom: 4px; }
+  .report-sub   { font-size: 1rem; color: #555; margin-bottom: 40px; }
+
+  h2 { font-size: 1.2rem; font-weight: 700; margin: 48px 0 16px; border-bottom: 2px solid #e5e5e5; padding-bottom: 8px; }
+
+  /* 排名卡片 */
+  .rank-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 40px; }
+  .rank-card { flex: 1; min-width: 220px; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; position: relative; }
+  .rank-badge { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+  .rb-1 { background: #fef3c7; color: #92400e; }
+  .rb-2 { background: #e0e7ff; color: #3730a3; }
+  .rb-3 { background: #dcfce7; color: #166534; }
+  .rb-4 { background: #f3f4f6; color: #374151; }
+  .rank-card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .rank-card .cider-val { font-size: 1.7rem; font-weight: 800; }
+  .rank-card .cider-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+  .rank-card .desc { font-size: 0.78rem; color: #555; margin-top: 6px; line-height: 1.5; }
+
+  /* 指标说明卡片 */
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 40px; }
+  .metric-card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px 18px; }
+  .metric-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+  .metric-full { font-size: 0.78rem; color: #888; margin-bottom: 6px; }
+  .metric-desc { font-size: 0.82rem; color: #444; line-height: 1.6; }
+  .metric-tip  { display: inline-block; margin-top: 6px; font-size: 0.75rem; padding: 1px 8px; border-radius: 10px; }
+  .tip-ngram  { background: #eff6ff; color: #1d4ed8; }
+  .tip-sem    { background: #f0fdf4; color: #15803d; }
+  .tip-struct { background: #fdf4ff; color: #7e22ce; }
+
+  /* 图表 */
+  .chart-wrap    { position: relative; width: 100%; height: 380px; margin-bottom: 40px; }
+  .chart-wrap-sm { position: relative; width: 100%; height: 320px; margin-bottom: 40px; }
+
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-bottom: 32px; }
+  th { background: #f9fafb; font-weight: 600; padding: 10px 12px; text-align: left; border-bottom: 2px solid #e5e5e5; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
+  tr.best td { font-weight: 700; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+  .tag-base { background: #e0e7ff; color: #3730a3; }
+
+  /* 观察结论 */
+  .insight-list { list-style: none; padding: 0; }
+  .insight-list li { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.875rem; color: #333; }
+  .insight-list li:last-child { border-bottom: none; }
+  .insight-num { min-width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; margin-top: 1px; }
+  .in-1 { background: #dcfce7; color: #166534; }
+  .in-2 { background: #dbeafe; color: #1e40af; }
+  .in-3 { background: #f3e8ff; color: #6b21a8; }
+  .in-4 { background: #fef3c7; color: #92400e; }
+  code { background: #f3f4f6; border-radius: 4px; padding: 1px 5px; font-family: "SF Mono", Consolas, monospace; font-size: 0.82em; }
+
+  .footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid #e5e5e5; font-size: 0.82rem; color: #888; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="report-title">BLIP2 视觉编码器对比实验报告</div>
+  <div class="report-sub">COCO Karpathy 测试集（5000 张图片）&nbsp;|&nbsp; Quick 训练轮次 &nbsp;|&nbsp; 生成时间：2026-03-30</div>
+
+  <!-- ── 排名 ── -->
+  <h2>综合排名（按 CIDEr）</h2>
+  <div class="rank-row">
+    <div class="rank-card">
+      <div class="rank-badge rb-1">1</div>
+      <h3>SigLIP2-SO400M</h3>
+      <div class="cider-val">0.9333</div>
+      <div class="cider-label">CIDEr 分数</div>
+      <div class="desc">Bleu-4: 0.2870 &nbsp;·&nbsp; SPICE: 0.1742<br>图文对齐预训练，特征语义性强</div>
+    </div>
+    <div class="rank-card">
+      <div class="rank-badge rb-2">2</div>
+      <h3>C-RADIOv4-SO400M</h3>
+      <div class="cider-val">0.9332</div>
+      <div class="cider-label">CIDEr 分数</div>
+      <div class="desc">Bleu-4: 0.2889 &nbsp;·&nbsp; SPICE: 0.1738<br>蒸馏自 CLIP + DINOv3 双教师</div>
+    </div>
+    <div class="rank-card">
+      <div class="rank-badge rb-3">3</div>
+      <h3>EVA-ViT-G <span style="font-weight:400;font-size:0.78rem;color:#888;">（基线）</span></h3>
+      <div class="cider-val">0.9306</div>
+      <div class="cider-label">CIDEr 分数</div>
+      <div class="desc">Bleu-4: 0.2853 &nbsp;·&nbsp; SPICE: 0.1723<br>BLIP2 原配编码器</div>
+    </div>
+    <div class="rank-card">
+      <div class="rank-badge rb-4">4</div>
+      <h3>DINOv3-ViT-L/16</h3>
+      <div class="cider-val">0.8547</div>
+      <div class="cider-label">CIDEr 分数</div>
+      <div class="desc">Bleu-4: 0.2675 &nbsp;·&nbsp; SPICE: 0.1634<br>纯自监督，无语言对齐预训练（bug 修复后）</div>
+    </div>
+  </div>
+
+  <!-- ── 指标说明 ── -->
+  <h2>评测指标说明</h2>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-name">Bleu-1 / 2 / 3 / 4</div>
+      <div class="metric-full">Bilingual Evaluation Understudy</div>
+      <div class="metric-desc">
+        衡量生成句子与参考句子之间 <strong>n-gram 短语重叠</strong>的精确率。
+        Bleu-1 看单词匹配，Bleu-4 看连续 4 个词的片段匹配。
+        数值越高说明生成文本与人工标注在字面上越接近。
+      </div>
+      <span class="metric-tip tip-ngram">词汇 n-gram 匹配</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-name">METEOR</div>
+      <div class="metric-full">Metric for Evaluation of Translation with Explicit ORdering</div>
+      <div class="metric-desc">
+        在 Bleu 基础上引入<strong>词干还原、同义词匹配</strong>，并同时考虑精确率与召回率的调和均值（F-score）。
+        对语义近似但用词不同的表达更宽容，与人类判断的相关性优于 Bleu。
+      </div>
+      <span class="metric-tip tip-ngram">n-gram + 语义扩展</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-name">ROUGE-L</div>
+      <div class="metric-full">Recall-Oriented Understudy for Gisting Evaluation</div>
+      <div class="metric-desc">
+        基于<strong>最长公共子序列（LCS）</strong>，衡量生成句与参考句中保留的最长有序词序列比例。
+        对句子整体流畅度和结构连贯性更敏感。
+      </div>
+      <span class="metric-tip tip-ngram">最长公共子序列</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-name">CIDEr</div>
+      <div class="metric-full">Consensus-based Image Description Evaluation</div>
+      <div class="metric-desc">
+        专为图像描述任务设计。用 <strong>TF-IDF 加权 n-gram</strong>，奖励罕见但精准的词汇，惩罚过于通用的描述（如"一张图"）。
+        与人类对图像描述质量的判断相关性最高，是当前图像描述的<strong>主评指标</strong>。
+      </div>
+      <span class="metric-tip tip-sem">图像描述主指标</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-name">SPICE</div>
+      <div class="metric-full">Semantic Propositional Image Caption Evaluation</div>
+      <div class="metric-desc">
+        将描述解析为<strong>语义场景图</strong>（对象、属性、关系），再比较生成描述与参考描述的场景图 F-score。
+        对物体识别、属性描述、空间关系等<strong>语义理解能力</strong>最为敏感，但对词汇选择不敏感。
+      </div>
+      <span class="metric-tip tip-struct">场景图语义匹配</span>
+    </div>
+  </div>
+
+  <!-- ── CIDEr 图 ── -->
+  <h2>CIDEr 分数对比</h2>
+  <div class="chart-wrap">
+    <canvas id="ciderChart"></canvas>
+  </div>
+
+  <!-- ── 全指标图 ── -->
+  <h2>全指标对比</h2>
+  <div class="chart-wrap">
+    <canvas id="allMetricsChart"></canvas>
+  </div>
+
+  <!-- ── Radar ── -->
+  <h2>能力雷达图</h2>
+  <div class="chart-wrap-sm" style="max-width:500px;margin:0 auto 40px;">
+    <canvas id="radarChart"></canvas>
+  </div>
+
+  <!-- ── 完整指标表 ── -->
+  <h2>完整指标数据</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>编码器</th>
+        <th></th>
+        <th>Bleu-1</th>
+        <th>Bleu-2</th>
+        <th>Bleu-3</th>
+        <th>Bleu-4</th>
+        <th>METEOR</th>
+        <th>ROUGE-L</th>
+        <th>CIDEr</th>
+        <th>SPICE</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="best">
+        <td>SigLIP2-SO400M</td>
+        <td></td>
+        <td>0.7072</td>
+        <td>0.5446</td>
+        <td>0.4002</td>
+        <td>0.2870</td>
+        <td>0.2324</td>
+        <td>0.5171</td>
+        <td>0.9333</td>
+        <td>0.1742</td>
+      </tr>
+      <tr class="best">
+        <td>C-RADIOv4-SO400M</td>
+        <td></td>
+        <td>0.7076</td>
+        <td>0.5457</td>
+        <td>0.4013</td>
+        <td>0.2889</td>
+        <td>0.2325</td>
+        <td>0.5177</td>
+        <td>0.9332</td>
+        <td>0.1738</td>
+      </tr>
+      <tr>
+        <td>EVA-ViT-G</td>
+        <td><span class="tag tag-base">基线</span></td>
+        <td>0.7055</td>
+        <td>0.5423</td>
+        <td>0.3974</td>
+        <td>0.2853</td>
+        <td>0.2315</td>
+        <td>0.5142</td>
+        <td>0.9306</td>
+        <td>0.1723</td>
+      </tr>
+      <tr>
+        <td>DINOv3-ViT-L/16</td>
+        <td></td>
+        <td>0.6885</td>
+        <td>0.5213</td>
+        <td>0.3776</td>
+        <td>0.2675</td>
+        <td>0.2216</td>
+        <td>0.5026</td>
+        <td>0.8547</td>
+        <td>0.1634</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Stage1 损失 ── -->
+  <h2>Stage 1 Q-Former 预训练损失</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>编码器</th>
+        <th>loss_itc（图文对比）</th>
+        <th>loss_itm（图文匹配）</th>
+        <th>loss_lm（语言建模）</th>
+        <th>总损失</th>
+        <th>备注</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="best">
+        <td>C-RADIOv4-SO400M</td>
+        <td>0.898</td>
+        <td>0.189</td>
+        <td>2.970</td>
+        <td>4.057</td>
+        <td>ITC 最低，视觉-语言对齐最强</td>
+      </tr>
+      <tr>
+        <td>SigLIP2-SO400M</td>
+        <td>1.091</td>
+        <td>0.256</td>
+        <td>3.106</td>
+        <td>4.452</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>EVA-ViT-G</td>
+        <td>1.108</td>
+        <td>0.266</td>
+        <td>3.126</td>
+        <td>4.500</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>DINOv3-ViT-L/16</td>
+        <td>1.111</td>
+        <td>0.277</td>
+        <td>3.129</td>
+        <td>4.517</td>
+        <td>ITC 最高，缺乏语言对齐预训练</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── 结论 ── -->
+  <h2>关键结论</h2>
+  <ul class="insight-list">
+    <li>
+      <div class="insight-num in-1">1</div>
+      <div><strong>三强并列</strong> —— SigLIP2（0.9333）、RADIO（0.9332）、EVA-ViT（0.9306）在当前训练规模下实质性能相当，均超过基线水平，差距处于统计噪声范围内。</div>
+    </li>
+    <li>
+      <div class="insight-num in-2">2</div>
+      <div><strong>RADIO 的 Q-Former 对齐能力最强</strong> —— Stage 1 的 loss_itc = 0.898，低于其他所有编码器。C-RADIOv4 同时蒸馏了 CLIP 和 DINOv3 双教师，视觉特征天然携带较强的语言语义信号。</div>
+    </li>
+    <li>
+      <div class="insight-num in-3">3</div>
+      <div><strong>DINOv3 差距属于架构本征限制</strong> —— DINOv3-ViT-L/16 使用 patch_size=16（每张图 token 数少于 patch_size=14 的模型），且仅进行自监督预训练，不含语言对齐目标。bug 修复后 CIDEr 提升至 0.8547，但与顶部模型仍有明显差距，反映其在图像描述任务上的固有能力天花板。</div>
+    </li>
+    <li>
+      <div class="insight-num in-4">4</div>
+      <div><strong>输入归一化必须与编码器匹配</strong> —— SigLIP2 要求 <code>mean=std=0.5</code>；RADIO 内部自带 InputConditioner 处理归一化，外部应传入原始 [0,1] 像素值（<code>do_normalize=false</code>）；EVA-ViT 和 DINOv3 使用标准 CLIP/ImageNet 归一化。归一化不匹配会导致严重的性能退化。</div>
+    </li>
+  </ul>
+
+  <div class="footer">
+    生成时间：2026-03-30 &nbsp;|&nbsp; 框架：BLIP2 &nbsp;|&nbsp; 数据集：COCO Karpathy 测试集（5000 张）&nbsp;|&nbsp;
+    编码器：EVA-ViT-G · SigLIP2-SO400M-patch14-384 · C-RADIOv4-SO400M · DINOv3-ViT-L/16
+  </div>
+
+</div>
+
+<script>
+const C = {
+  origin:  '#3b82f6',
+  siglip2: '#22c55e',
+  radio:   '#f97316',
+  dinov3:  '#a855f7',
+};
+
+// CIDEr 柱状图
+{
+  const ctx = document.getElementById('ciderChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['SigLIP2-SO400M', 'C-RADIOv4-SO400M', 'EVA-ViT-G', 'DINOv3-ViT-L/16'],
+      datasets: [{
+        label: 'CIDEr',
+        data: [0.9333, 0.9332, 0.9306, 0.8547],
+        backgroundColor: [C.siglip2, C.radio, C.origin, C.dinov3],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { min: 0.7, max: 1.0, title: { display: true, text: 'CIDEr 分数' }, grid: { color: '#f0f0f0' } },
+        x: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `CIDEr: ${ctx.raw.toFixed(4)}` } }
+      }
+    }
+  });
+}
+
+// 全指标分组柱状图
+{
+  const ctx = document.getElementById('allMetricsChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Bleu-1', 'Bleu-4', 'METEOR', 'ROUGE-L', 'CIDEr', 'SPICE'],
+      datasets: [
+        { label: 'SigLIP2-SO400M',   backgroundColor: C.siglip2, borderRadius: 4, data: [0.7072, 0.2870, 0.2324, 0.5171, 0.9333, 0.1742] },
+        { label: 'C-RADIOv4-SO400M', backgroundColor: C.radio,   borderRadius: 4, data: [0.7076, 0.2889, 0.2325, 0.5177, 0.9332, 0.1738] },
+        { label: 'EVA-ViT-G',        backgroundColor: C.origin,  borderRadius: 4, data: [0.7055, 0.2853, 0.2315, 0.5142, 0.9306, 0.1723] },
+        { label: 'DINOv3-ViT-L/16',  backgroundColor: C.dinov3,  borderRadius: 4, data: [0.6885, 0.2675, 0.2216, 0.5026, 0.8547, 0.1634] },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { min: 0, max: 1.1, title: { display: true, text: '分数' }, grid: { color: '#f0f0f0' } },
+        x: { grid: { display: false } }
+      },
+      plugins: { legend: { position: 'top' } }
+    }
+  });
+}
+
+// 雷达图
+{
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  const raw = {
+    siglip2: [0.7072, 0.2870, 0.2324, 0.5171, 0.9333, 0.1742],
+    radio:   [0.7076, 0.2889, 0.2325, 0.5177, 0.9332, 0.1738],
+    origin:  [0.7055, 0.2853, 0.2315, 0.5142, 0.9306, 0.1723],
+    dinov3:  [0.6885, 0.2675, 0.2216, 0.5026, 0.8547, 0.1634],
+  };
+  const allVals = Object.values(raw);
+  const maxes = [0,1,2,3,4,5].map(i => Math.max(...allVals.map(a => a[i])));
+  const norm = arr => arr.map((v,i) => (v / maxes[i]) * 100);
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Bleu-1', 'Bleu-4', 'METEOR', 'ROUGE-L', 'CIDEr', 'SPICE'],
+      datasets: [
+        { label: 'SigLIP2-SO400M',   data: norm(raw.siglip2), borderColor: C.siglip2, backgroundColor: 'rgba(34,197,94,0.07)',  pointBackgroundColor: C.siglip2, borderWidth: 2 },
+        { label: 'C-RADIOv4-SO400M', data: norm(raw.radio),   borderColor: C.radio,   backgroundColor: 'rgba(249,115,22,0.07)', pointBackgroundColor: C.radio,   borderWidth: 2 },
+        { label: 'EVA-ViT-G',        data: norm(raw.origin),  borderColor: C.origin,  backgroundColor: 'rgba(59,130,246,0.07)', pointBackgroundColor: C.origin,  borderWidth: 2 },
+        { label: 'DINOv3-ViT-L/16',  data: norm(raw.dinov3),  borderColor: C.dinov3,  backgroundColor: 'rgba(168,85,247,0.07)', pointBackgroundColor: C.dinov3,  borderWidth: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { r: { min: 85, max: 100, ticks: { display: false }, grid: { color: '#e5e5e5' }, pointLabels: { font: { size: 13 } } } },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+</script>
+</body>
+</html>

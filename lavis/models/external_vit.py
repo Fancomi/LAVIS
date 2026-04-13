@@ -102,7 +102,11 @@ class DINOv3Encoder(_ExternalViTBase):
         # Disable outer fp16 autocast: DINOv2/v3 overflows in fp16
         with torch.autocast(device_type="cuda", enabled=False):
             tokens = self.encoder(pixel_values=x.float()).last_hidden_state
-        return tokens[:, self._num_prefix:, :]
+        # Keep CLS (position 0) + patch tokens (positions _num_prefix onward).
+        # Register tokens (positions 1.._num_prefix-1) are discarded.
+        cls   = tokens[:, 0:1, :]
+        patch = tokens[:, self._num_prefix:, :]
+        return torch.cat([cls, patch], dim=1)
 
 
 # ─── C-RADIOv4 ────────────────────────────────────────────────────────────────
